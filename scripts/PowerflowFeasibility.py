@@ -100,7 +100,7 @@ class PowerFlowFeasibility:
         Jnlin = csc_matrix((Jnlin_val, (Jnlin_row, Jlin_col)), shape=(size_Y, 1), dtype=np.float64)
         return (Ynlin, Jnlin)
 
-    def stamp_linear_dual(self,):
+    def stamp_nonlinear_dual(self,):
         # Generate the dual stamps for all your nonlinear devices.
         # You should decide the necessary arguments.
         pass 

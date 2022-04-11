@@ -14,10 +14,6 @@ class Slack:
                  Pinit,
                  Qinit):
         """Initialize slack bus in the power grid.
-        HINT: for feasibility analysis, you may want to change the behavior of this class
-              to only enforce the reference bus equations. Since every bus gets current injections
-              now, you could leave the stamps for the current injections on this bus to the
-              FeasibilitySource class.
 
         Args:
             Bus (int): the bus number corresponding to the slack bus.
