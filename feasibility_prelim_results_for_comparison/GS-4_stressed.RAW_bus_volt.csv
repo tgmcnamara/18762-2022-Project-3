@@ -1,0 +1,7 @@
+Node Name,Voltage Magnitude,Voltage Angle
+1,1.0,0.0
+2,0.5175061003856581,-20.406949790676506
+3,0.6270553260192435,-20.52722965113106
+4,1.02,8.635891642974697
+Generator Name,Generator Qmax,Generator Qmin,Generator Q
+4,7.0,-7.0,23.34592382873092,GenType.Generation
