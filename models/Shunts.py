@@ -49,7 +49,7 @@ class Shunts:
         self.Binit = Binit
         self.controlBus = controlBus
         self.flag_control_shunt_bus = flag_control_shunt_bus
-        self.Nsteps = Nsteps 
+        self.Nsteps = Nsteps
         self.Bsteps= Bsteps
         self.id = self._ids.__next__()
         self.G_pu = G_MW/global_vars.base_MVA
@@ -58,25 +58,27 @@ class Shunts:
     def assign_indexes(self, bus):
         self.Vr_node = bus[Buses.bus_key_[self.Bus]].node_Vr
         self.Vi_node = bus[Buses.bus_key_[self.Bus]].node_Vi
+        self.Vr_node = bus[Buses.bus_key_[self.Bus]].node_Vr
+        self.Vi_node = bus[Buses.bus_key_[self.Bus]].node_Vi
 
     def stamp(self, V, Y_val, Y_row, Y_col, J_val, J_row, idx_Y, idx_J):
-        idx_Y = stampY(self.Vr_node, self.Vr_node,
-                                    self.G_pu, Y_val, Y_row, Y_col, idx_Y)
-        idx_Y = stampY(self.Vi_node, self.Vi_node,
-                                    self.G_pu, Y_val, Y_row, Y_col, idx_Y)
-        idx_Y = stampY(self.Vr_node, self.Vi_node,
-                                    -self.B_pu, Y_val, Y_row, Y_col, idx_Y)
-        idx_Y = stampY(self.Vi_node, self.Vr_node,
-                                    self.B_pu, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Vr_node, self.Vr_node, self.G_pu, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Vi_node, self.Vi_node, self.G_pu, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Vr_node, self.Vi_node, -self.B_pu, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Vi_node, self.Vr_node, self.B_pu, Y_val, Y_row, Y_col, idx_Y)
         return (idx_Y, idx_J)
 
-    def stamp_dual(self):
+    def stamp_dual(self, V, Y_val, Y_row, Y_col, J_val, J_row, idx_Y, idx_J):
         # You need to implement this.
-        pass
+        idx_Y = stampY(self.Lr_node, self.Lr_node, self.G_pu, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Li_node, self.Li_node, self.G_pu, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Li_node, self.Lr_node, -self.B_pu, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Lr_node, self.Li_node, self.B_pu, Y_val, Y_row, Y_col, idx_Y)
+        return (idx_Y, idx_J)
 
     def calc_residuals(self, resid, V):
         Vr = V[self.Vr_node]
         Vi = V[self.Vi_node]
-        
+
         resid[self.Vr_node] += -self.B_pu*Vi + self.G_pu*Vr
         resid[self.Vi_node] += self.B_pu*Vr + self.G_pu*Vi

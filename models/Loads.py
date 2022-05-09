@@ -47,13 +47,15 @@ class Loads:
         self.IQ = IQ/global_vars.base_MVA
         self.ZP = ZP/global_vars.base_MVA
         self.ZQ = ZQ/global_vars.base_MVA
-    
+
     def assign_indexes(self, bus):
         # Nodes shared by generators on the same bus
         self.Vr_node = bus[Buses.bus_key_[self.Bus]].node_Vr
         self.Vi_node = bus[Buses.bus_key_[self.Bus]].node_Vi
         # check something about gen_type??
-    
+        self.Lr_node = bus[Buses.bus_key_[self.Bus]].node_Lr
+        self.Li_node = bus[Buses.bus_key_[self.Bus]].node_Li
+
     def stamp(self, V, Y_val, Y_row, Y_col, J_val, J_row, idx_Y, idx_J):
         Vr = V[self.Vr_node]
         Vi = V[self.Vi_node]
@@ -62,7 +64,7 @@ class Loads:
         dIrldVr = (self.P*(Vi**2-Vr**2) - 2*self.Q*Vr*Vi)/(Vr**2+Vi**2)**2
         dIrldVi = (self.Q*(Vr**2-Vi**2) - 2*self.P*Vr*Vi)/(Vr**2+Vi**2)**2
         Vr_J_stamp = -Irg_hist + dIrldVr*Vr + dIrldVi*Vi
-        
+
         idx_Y = stampY(self.Vr_node, self.Vr_node, dIrldVr, Y_val, Y_row, Y_col, idx_Y)
         idx_Y = stampY(self.Vr_node, self.Vi_node, dIrldVi, Y_val, Y_row, Y_col, idx_Y)
         idx_J = stampJ(self.Vr_node, Vr_J_stamp, J_val, J_row, idx_J)
@@ -78,9 +80,51 @@ class Loads:
 
         return (idx_Y, idx_J)
 
-    def stamp_dual(self):
+    def stamp_dual(self, V, Y_val, Y_row, Y_col, J_val, J_row, idx_Y, idx_J):
         # You need to implement this.
-        pass
+        Vr = V[self.Vr_node]
+        Vi = V[self.Vi_node]
+        Lr = V[self.Lr_node]
+        Li = V[self.Li_node]
+
+        dLrldLr = (self.P*(Vi**2-Vr**2) - 2*self.Q*Vr*Vi)/(Vr**2+Vi**2)**2
+        dLrldLi = (self.Q*(Vr**2-Vi**2) - 2*self.P*Vr*Vi)/(Vr**2+Vi**2)**2
+
+        idx_Y = stampY(self.Lr_node, self.Lr_node, dLrldLr, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Lr_node, self.Li_node, dLrldLi, Y_val, Y_row, Y_col, idx_Y)
+
+        dLildLi = -dLrldLr
+        dLildLr = dLrldLi
+
+        idx_Y = stampY(self.Li_node, self.Lr_node, dLildLr, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Li_node, self.Li_node, dLildLi, Y_val, Y_row, Y_col, idx_Y)
+
+        low = (Vr**2+Vi**2)
+        lowsq = low**2
+        P = self.P
+        Q = self.Q
+
+        dLrldVr = (Lr*(lowsq*(-2*P*Vr-2*Q*Vi)-2*Vr*low*(P*(Vi**2-Vr**2) - 2*Q*Vr*Vi)) + Li*(lowsq*(2*Q*Vr-2*P*Vi)-2*Vr*low*(Q*(Vr**2-Vi**2) - 2*P*Vr*Vi)))/(lowsq**2)
+        dLrldVi = (Lr*(lowsq*(2*P*Vi-2*Q*Vr)-2*Vi*low*(P*(Vi**2-Vr**2) - 2*Q*Vr*Vi)) + Li*(lowsq*(-2*Q*Vi-2*P*Vr)-2*Vi*low*(Q*(Vr**2-Vi**2) - 2*P*Vr*Vi)))/(lowsq**2)
+
+        dLildVr = (Lr*(lowsq*(2*Q*Vr-2*P*Vi)-2*Vr*low*(Q*(Vr**2-Vi**2) - 2*P*Vr*Vi)) + Li*(lowsq*(2*P*Vr+2*Q*Vi)-2*Vr*low*(P*(Vr**2-Vi**2) + 2*Q*Vr*Vi)))/(lowsq**2)
+        dLildVi = (Lr*(lowsq*(-2*Q*Vi-2*P*Vr)-2*Vi*low*(Q*(Vr**2-Vi**2) - 2*P*Vr*Vi)) + Li*(lowsq*(-2*P*Vi+2*Q*Vr)-2*Vi*low*(P*(Vr**2-Vi**2) + 2*Q*Vr*Vi)))/(lowsq**2)
+
+        idx_Y = stampY(self.Lr_node, self.Vr_node, dLrldVr, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Lr_node, self.Vi_node, dLrldVi, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Li_node, self.Vr_node, dLildVr, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Li_node, self.Vi_node, dLildVi, Y_val, Y_row, Y_col, idx_Y)
+
+        Iig_hist = Li*dLildLi + Lr*dLildLr
+        Vi_J_stamp = -Iig_hist + dLildLi*Li + dLildLr*Lr + dLildVr*Vr + dLildVi*Vi
+
+        Irg_hist = Li*dLrldLi + Lr*dLrldLr
+        Vr_J_stamp = -Irg_hist + dLrldLr*Lr + dLrldLi*Li + dLrldVr*Vr + dLrldVi*Vi
+
+        idx_J = stampJ(self.Li_node, Vi_J_stamp, J_val, J_row, idx_J)
+        idx_J = stampJ(self.Lr_node, Vr_J_stamp, J_val, J_row, idx_J)
+
+        return (idx_Y, idx_J)
 
     def calc_residuals(self, resid, V):
         P = self.P

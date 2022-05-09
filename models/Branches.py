@@ -57,6 +57,10 @@ class Branches:
         self.Vi_from_node = bus[Buses.bus_key_[self.from_bus]].node_Vi
         self.Vr_to_node = bus[Buses.bus_key_[self.to_bus]].node_Vr
         self.Vi_to_node = bus[Buses.bus_key_[self.to_bus]].node_Vi
+        self.Lr_from_node = bus[Buses.bus_key_[self.from_bus]].node_Lr
+        self.Li_from_node = bus[Buses.bus_key_[self.from_bus]].node_Li
+        self.Lr_to_node = bus[Buses.bus_key_[self.to_bus]].node_Lr
+        self.Li_to_node = bus[Buses.bus_key_[self.to_bus]].node_Li
 
     def stamp(self, V, Ylin_val, Ylin_row, Ylin_col, Jlin_val, Jlin_row, idx_Y, idx_J):
         if not self.status:
@@ -89,19 +93,50 @@ class Branches:
         idx_Y = stampY(self.Vi_from_node, self.Vi_to_node, -self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
         idx_Y = stampY(self.Vr_to_node, self.Vr_from_node, -self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
         idx_Y = stampY(self.Vi_to_node, self.Vi_from_node, -self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
-    
+
         return (idx_Y, idx_J)
 
-    def stamp_dual(self):
+    def stamp_dual(self, V, Ylin_val, Ylin_row, Ylin_col, Jlin_val, Jlin_row, idx_Y, idx_J):
         # You need to implement this.
-        pass
+        if not self.status:
+            return (idx_Y, idx_J)
+        # Line Bs
+        idx_Y = stampY(self.Li_from_node, self.Lr_from_node, -self.B_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Li_to_node, self.Lr_from_node, self.B_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Lr_from_node, self.Li_from_node, self.B_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Lr_to_node, self.Li_from_node, -self.B_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Li_to_node, self.Lr_to_node, -self.B_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Li_from_node, self.Lr_to_node, self.B_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Lr_to_node, self.Li_to_node, self.B_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Lr_from_node, self.Li_to_node, -self.B_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+
+        # Line Shunts
+        idx_Y = stampY(self.Li_from_node, self.Lr_from_node, -self.b/2, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Lr_from_node, self.Li_from_node, self.b/2, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Li_to_node, self.Lr_to_node, -self.b/2, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Lr_to_node, self.Li_to_node, self.b/2, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+
+        if self.r == 0:
+            return (idx_Y, idx_J)
+
+        # Line Gs
+        idx_Y = stampY(self.Lr_from_node, self.Lr_from_node, self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Li_from_node, self.Li_from_node, self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Lr_to_node, self.Lr_to_node, self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Li_to_node, self.Li_to_node, self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Lr_to_node, self.Lr_from_node, -self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Li_to_node, self.Li_from_node, -self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Lr_from_node, self.Lr_to_node, -self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+        idx_Y = stampY(self.Li_from_node, self.Li_to_node, -self.G_pu, Ylin_val, Ylin_row, Ylin_col, idx_Y)
+
+        return (idx_Y, idx_J)
 
     def calc_residuals(self, resid, V):
         Vr_from = V[self.Vr_from_node]
         Vr_to = V[self.Vr_to_node]
         Vi_from = V[self.Vi_from_node]
         Vi_to = V[self.Vi_to_node]
-        
+
         resid[self.Vr_from_node] += (Vr_from-Vr_to)*self.G_pu - (Vi_from-Vi_to)*self.B_pu - Vi_from*self.b/2
         resid[self.Vr_to_node] += (Vr_to-Vr_from)*self.G_pu - (Vi_to-Vi_from)*self.B_pu - Vi_to*self.b/2
         resid[self.Vi_from_node] += (Vr_from-Vr_to)*self.B_pu + (Vi_from-Vi_to)*self.G_pu + Vr_from*self.b/2
