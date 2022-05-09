@@ -6,4 +6,5 @@ class global_vars:
         pass
     MVAbase=100
     f=60
+    xfmr_model = 0
 

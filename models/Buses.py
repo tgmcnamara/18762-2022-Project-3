@@ -41,6 +41,9 @@ class Buses:
 
         # initialize dual nodes
         # TODO - you can name them as you please
+        self.node_Lr = None
+        self.node_Li = None
+        self.node_LQ = None
 
         # initialize the bus key
         self.idAllBuses = self._idsAllBuses.__next__()
@@ -69,7 +72,7 @@ class Buses:
             self.node_Vr = self._node_index.__next__()
             self.node_Vi = self._node_index.__next__()
             self.node_Q = self._node_index.__next__()
-        
+
     def assign_dual_nodes(self):
         """Assign nodes for the dual variables (lambdas)
 
@@ -79,7 +82,11 @@ class Buses:
         # TODO
         # You need to do this
         # Remember, every equality constraint in your system needs a lambda variable.
-        pass
+        self.node_Lr = self._node_index.__next__()
+        self.node_Li = self._node_index.__next__()
+
+        if self.Type == 2:
+            self.node_LQ = self._node_index.__next__()
 
     def calc_Vphasor(self, V_sol):
         Vr = V_sol[self.node_Vr]

@@ -29,7 +29,7 @@ class Slack:
         self.Qinit_MVA = Qinit
         self.Pinit = Pinit/global_vars.base_MVA
         self.Qinit = Qinit/global_vars.base_MVA
-        
+
         # initialize
         self.Vr_set = Vset*np.cos(ang*np.pi/180)
         self.Vi_set = Vset*np.sin(ang*np.pi/180)
@@ -52,8 +52,11 @@ class Slack:
         self.Slack_Ir_node = Buses._node_index.__next__()
         self.Slack_Ii_node = Buses._node_index.__next__()
 
-    def assign_dual_nodes(self,):
-        # You need to implement this
+    def assign_dual_nodes(self,bus):
+        self.Lr_node = bus[Buses.bus_key_[self.Bus]].node_Lr
+        self.Li_node = bus[Buses.bus_key_[self.Bus]].node_Li
+        self.Slack_Fr_node = Buses._node_index.__next__()
+        self.Slack_Fi_node = Buses._node_index.__next__()
         pass
 
     def stamp(self, V, Y_val, Y_row, Y_col, J_val, J_row, idx_Y, idx_J):
@@ -70,9 +73,13 @@ class Slack:
 
         return (idx_Y, idx_J)
 
-    def stamp_dual(self):
-        # You need to implement this.
-        pass
+    def stamp_dual(self, V, Y_val, Y_row, Y_col, J_val, J_row, idx_Y, idx_J):
+        idx_Y = stampY(self.Lr_node, self.Slack_Fr_node, 1, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Li_node, self.Slack_Fi_node, 1, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Slack_Fr_node, self.Lr_node, 1, Y_val, Y_row, Y_col, idx_Y)
+        idx_Y = stampY(self.Slack_Fi_node, self.Li_node, 1, Y_val, Y_row, Y_col, idx_Y)
+
+        return (idx_Y, idx_J)
 
     def calc_slack_PQ(self, V_sol):
         Ir = V_sol[self.Slack_Ir_node]
